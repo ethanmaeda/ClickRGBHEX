@@ -1,15 +1,16 @@
 import win32api, win32gui
-import pyautogui
 import colorsys
 import time
 import pyperclip
+import ctypes
 import tkinter as tk
 
+# Multiple monitor fix
+awareness = ctypes.c_int()
+ctypes.windll.shcore.SetProcessDpiAwareness(2)
+
 # Variable initializations
-rgbstr=""
-hexstr=""
 get=False
-copied=False
 start=-1
 running=True
 
@@ -17,11 +18,13 @@ running=True
 def turngeton():
     global get
     get=True
+    btn_activate.config(state=tk.DISABLED, text="Waiting...")
 
 def copyhex():
-    pyperclip.copy(hexstr)
-    global copied
-    copied=True
+    global start
+    start=time.process_time()
+    btn_copyhex.config(state=tk.DISABLED, text="Copied!")
+    pyperclip.copy(lbl_hexval["text"])
 
 def close():
     global running
@@ -49,10 +52,10 @@ lbl_rgb.grid(row=0, column=0)
 lbl_hex = tk.Label(master=infoframe, text="HEX value: ")
 lbl_hex.grid(row=1, column=0)
 
-lbl_rgbval = tk.Label(master=infoframe, text=rgbstr, width=11, relief=tk.RIDGE)
+lbl_rgbval = tk.Label(master=infoframe, text='', width=11, relief=tk.RIDGE)
 lbl_rgbval.grid(row=0, column=1)
 
-lbl_hexval = tk.Label(master=infoframe, text=hexstr, width=11, relief=tk.RIDGE)
+lbl_hexval = tk.Label(master=infoframe, text='', width=11, relief=tk.RIDGE)
 lbl_hexval.grid(row=1, column=1)
 
 lbl_name = tk.Label(master=infoframe, text="Ethan Maeda")
@@ -74,33 +77,18 @@ btn_copyhex.grid(row=3, column=0)
 # Main program
 while running:
     if get==True:
-        btn_activate.config(state=tk.DISABLED, text="Waiting...")
-        
         if win32api.GetAsyncKeyState(0x01) < 0:
-            x, y = pyautogui.position()
-            colour = win32gui.GetPixel(win32gui.GetDC(None), x, y)
-            rgb=(colour & 255, (colour >> 8) & 255, (colour>>16) & 255)
-
-            rgbstr = ', '.join(map(str, rgb))
-            hexstr = "#%02x%02x%02x" % rgb
-            hexstr=hexstr.upper()
+            x, y = win32gui.GetCursorPos()
+            colour = win32gui.GetPixel(win32gui.GetDC(0), x, y)
+            lbl_rgbval.config(text=', '.join(map(str, (colour & 255, (colour >> 8) & 255, (colour>>16) & 255))))
+            lbl_hexval.config(text=("#%02x%02x%02x" % (colour & 255, (colour >> 8) & 255, (colour>>16) & 255)).upper())
+            colourframe.config(bg=lbl_hexval["text"])
+            btn_activate.config(state=tk.NORMAL, text="Activate")
             get=False
-    else:
-        btn_activate.config(state=tk.NORMAL, text="Activate")
         
-    if copied==True:
-        start=time.process_time()
-        btn_copyhex.config(state=tk.DISABLED, text="Copied!")
-        copied=False
-
-    if copied==False and start+1.5==time.process_time():
+    if start!=-1 and start+1.5==time.process_time():
         btn_copyhex.config(state=tk.NORMAL, text="Copy HEX")
-    
-    lbl_rgbval.config(text=rgbstr)
-    lbl_hexval.config(text=hexstr)
-    
-    if hexstr!="":
-        colourframe.config(bg=hexstr)
+        start=-1
 
     window.protocol("WM_DELETE_WINDOW", close)  
     window.update()
