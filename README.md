@@ -4,3 +4,6 @@ UI implemented with Tkinter, icon created by me.
 
 # HOW TO USE
 - Download the latest release, launch the exe and click on the "How to Use" button
+
+# SAMPLE
+![screenshot](/screenshots/sample.png)
